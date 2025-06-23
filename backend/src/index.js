@@ -13,6 +13,8 @@ const app = express();
 
 
 const PORT = process.env.PORT
+app.use(express.json({ limit: '5mb' }));  // or higher if needed
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
 app.use(express.json()); //use to allow the server to json data out of body. 
 app.use(cookieParser()); // allow to parse the cookies
