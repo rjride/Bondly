@@ -18,13 +18,16 @@ export const getMessages = async(req,res) =>{
    try{
      const {id:userToChatId} = req.params
      const myId = req.user._id;
+  console.log("authUser (from token):", req.user._id);
+console.log("Chat with:", req.params.id);
+
 
      const  message = await Message.find({
         $or:[
-           {myId:myId, receiverId:userToChatId},
-           {myId:userToChatId, receiverId:myId}
+           { senderId: req.user._id, receiverId: req.params.id },
+    { senderId: req.params.id, receiverId: req.user._id }
            ]
-     })
+     }).sort({createdAt:1}); // shows oldest to newest
 
      res.status(200).json(message)
    }catch(error){
