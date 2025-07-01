@@ -16,8 +16,10 @@ const SignUpPage = () => {
     email: "",
     password: "",
   });
+  // const { signup, isSigningUp } = useAuthStore();
+  const signup = useAuthStore(state => state.signup);
+const isSigningUp = useAuthStore(state => state.isSigningUp);
 
-  const { signup, isSigningUp } = useAuthStore();
 
   const validateForm = () => {
     if(!formData.fullName.trim()) return toast.error("Full name is required");
@@ -97,9 +99,9 @@ const SignUpPage = () => {
             </div>
 
             <div className="form-control">
-              <lable className="label">
+              <label className="label">
                 <span className="label-text font-medium">Password</span>
-              </lable>
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="size-5 text-base-content/40" />
@@ -133,10 +135,10 @@ const SignUpPage = () => {
               disabled={isSigningUp}
             >
               {isSigningUp ? (
-                <>
+                <span className="flex items-center gap-2 justify-center">
                   <Loader2 className="size-5 animate-spin" />
                   Loading...
-                </>
+                </span>
               ) : (
                 "Create Account"
               )}
