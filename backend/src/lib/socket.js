@@ -5,11 +5,7 @@ import express from "express";
 
 const app = express();
 const server = http.createServer(app);
-// const io = new Server(server, {
-// cors: {
-//    origin: ["http://localhost:5173"],
-// },
-// });
+
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === "production"
@@ -38,7 +34,18 @@ io.on("connection",(socket)=>{
 
     //io.emit() is used to send events to all the connected clients.
     io.emit("getOnlineUsers",Object.keys(userSocketMap));
-
+     // now listen for shareKey from sender
+       socket.on("shareKey", ({ key, to }) => {
+    console.log(`Received shareKey from ${userId} to ${to}`);
+    const receiverSocketId = userSocketMap[to];
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("receiveKey", { key });
+      console.log(`Key sent to ${to} (socket ${receiverSocketId})`);
+    } else {
+      console.log(`Receiver ${to} is not online, cannot share key`);
+      // Optionally store key for future delivery
+    }
+  });
     socket.on("disconnect",()=>{
         console.log("A user disconnected",socket.id);
         delete userSocketMap[userId];

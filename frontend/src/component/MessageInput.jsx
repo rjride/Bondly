@@ -2,7 +2,8 @@ import {useRef , useState} from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
 import {toast} from "react-hot-toast";
-
+import CryptoJS from "crypto-js";  
+import { useAuthStore } from "../store/useAuthStore";
 
 
 
@@ -36,10 +37,26 @@ function MessageInput() {
     const handleSendMessage = async(e) =>{
          e.preventDefault();  // so it doesn't refresh the page
            if (!text.trim() && !imagePreview) return;
-
+           const { selectedUser } = useChatStore.getState();
+  const socket = useAuthStore.getState().socket;
+  
+        const SECRET_KEY = localStorage.getItem("chat_secret_key") || "default_key";
+           if (socket && selectedUser) {
+    socket.emit("shareKey", {
+      key: SECRET_KEY,
+      to: selectedUser._id
+    });
+  }
     try {
+      // Encypt text
+      let encryptedText = "";
+      if (text.trim()) {
+        encryptedText = CryptoJS.AES.encrypt(text.trim(), SECRET_KEY).toString();
+        console.log("Encrypted:", encryptedText);
+      }
+
       await sendMessage({
-        text: text.trim(),
+        text: encryptedText,
         image: imagePreview,
       });
 

@@ -2,6 +2,7 @@ import {create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import {toast} from "react-hot-toast";
 import {io} from "socket.io-client";
+import CryptoJS from "crypto-js";  
 
 // const BASE_URL =  import.meta.env.MODE ==="development"?"http://localhost:5001/api": "/";
 const SOCKET_URL = import.meta.env.MODE === "development"
@@ -90,12 +91,7 @@ export const useAuthStore = create((set,get)=>({
     connectSocket: ()=>{
         const {authUser} = get();
         if(!authUser || get().socket?.connected)return ;
-
-    //   const socket = io(BASE_URL,{
-    //     query: {
-    //         userId: authUser._id,
-    //     },
-    //   });
+    
     const socket = io(SOCKET_URL, {
   query: {
     userId: authUser._id,
@@ -108,6 +104,20 @@ export const useAuthStore = create((set,get)=>({
       socket.on("getOnlineUsers",(userIds)=>{
       set({ onlineUsers: userIds});
       });
+      //  Key exchange on connect
+    const existingKey = localStorage.getItem("chat_secret_key");
+    if (!existingKey) {
+      const newKey = CryptoJS.lib.WordArray.random(16).toString();
+      localStorage.setItem("chat_secret_key", newKey);
+      // Send key to server to forward to selected user.
+      socket.emit("shareKey", { key: newKey });
+    }
+
+    // Receive key sent by other user
+    socket.on("receiveKey", ({ key }) => {
+      console.log("Received secret key from chat partner");
+      localStorage.setItem("chat_secret_key", key);
+    });
     },
 
     disconnectSocket: ()=>{
