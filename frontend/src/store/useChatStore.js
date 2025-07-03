@@ -31,18 +31,27 @@ export const useChatStore = create((set,get) => ({
 
   //  GET MESSAGES
   getMessages: async (userId) => {
-    set({ isMessagesLoading: true });
-    try {
-      console.log("Fetching message for:",userId);
-      const { data } = await axiosInstance.get(`/messages/${userId}`);
-      console.log("Fetched messages:", data);
-      set({ messages: data });
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to load messages");
-    } finally {
-      set({ isMessagesLoading: false });
-    }
-  },
+  set({ isMessagesLoading: true });
+  try {
+    console.log("Fetching message for:", userId);
+    const { data } = await axiosInstance.get(`/messages/${userId}`);
+    console.log("Fetched messages:", data);
+
+    // Decrypt each message
+    const decryptedMessages = data.map(msg => {
+      if (msg.text) {
+        msg.text = decryptMessageText(msg.text);
+      }
+      return msg;
+    });
+
+    set({ messages: decryptedMessages });
+  } catch (error) {
+    toast.error(error?.response?.data?.message || "Failed to load messages");
+  } finally {
+    set({ isMessagesLoading: false });
+  }
+},
 
   sendMessage: async (messageData)=>{
   const {selectedUser,messages} =  get();
@@ -64,20 +73,7 @@ const socket = useAuthStore.getState().socket;
     socket.on("newMessage",(newMessage)=>{
       const ismessageSentFromSelectedUser = newMessage.senderId===selectedUser._id;
       if(!ismessageSentFromSelectedUser)return;
-      // //Decrypt text
-      // const SECRET_KEY = localStorage.getItem("chat_secret_key") || "default_key";
-      // let decryptedText = "";
-      // if (newMessage.text) {
-      //   try {
-      //     const bytes = CryptoJS.AES.decrypt(newMessage.text, SECRET_KEY);
-      //     decryptedText = bytes.toString(CryptoJS.enc.Utf8);
-      //     console.log("Decrypted:", decryptedText);
-      //   } catch (err) {
-      //     console.error("Decryption failed", err);
-      //     decryptedText = "[Decryption error]";
-      //   }
-      // }
-      // newMessage.text = decryptedText;
+     
       if(newMessage.text){
         newMessage.text = decryptMessageText(newMessage.text);
       }
