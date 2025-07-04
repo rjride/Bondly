@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios"; // fixed path typo
 import { useAuthStore } from "./useAuthStore";
 import { decryptMessageText } from "../lib/decrypt";
-
+import CryptoJS from "crypto-js";
 
 
 
@@ -64,27 +64,66 @@ res.data.text = decryptedText;
     toast.error(error.response.data.message);
   }
   },
- 
-  subscribeToMessages: () =>{
-    const {selectedUser} = get();
-    if(!selectedUser)return ;
-const socket = useAuthStore.getState().socket;
-
-    socket.on("newMessage",(newMessage)=>{
-      const ismessageSentFromSelectedUser = newMessage.senderId===selectedUser._id;
-      if(!ismessageSentFromSelectedUser)return;
-     
-      if(newMessage.text){
-        newMessage.text = decryptMessageText(newMessage.text);
-      }
-
-      set({
-        messages: [...get().messages, newMessage],
-      });
+deleteMessage: async (messageId) => {
+  const { messages } = get();
+  try {
+    await axiosInstance.delete(`/messages/delete/${messageId}`);
+    set({
+      messages: messages.filter(m => m._id !== messageId),
     });
-  },
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Failed to delete message");
+  }
+},
+updateMessage: async (messageId, newText) => {
+  const SECRET_KEY = import.meta.env.VITE_CHAT_SECRET_KEY || "default_key";
+  //const { messages } = get();
+    // Encrypt text before sending
+  const encryptedText = CryptoJS.AES.encrypt(newText.trim(), SECRET_KEY).toString();
 
+  try {
+    const res = await axiosInstance.put(`/messages/update/${messageId}`, { text: encryptedText });
+    console.log(res);
+    // Update local messages state with decrypted text
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg._id === messageId ? { ...msg, text: newText } : msg
+      ),
+    }));
+  } catch (err) {
+    console.error("Update message failed:", err);
+    toast.error("Failed to update message");
+  }
+},
+subscribeToMessages: () => {
+  const { selectedUser } = get();
+  if (!selectedUser) return;
+  const socket = useAuthStore.getState().socket;
 
+  socket.on("newMessage", (newMessage) => {
+    if (newMessage.senderId !== selectedUser._id) return;
+    newMessage.text = decryptMessageText(newMessage.text);
+    set({
+      messages: [...get().messages, newMessage],
+    });
+  });
+
+  socket.on("messageDeleted", ({ messageId }) => {
+    set({
+      messages: get().messages.filter(m => m._id !== messageId),
+    });
+  });
+
+ socket.on("messageUpdated", (updatedMsg) => {
+  const decryptedText = decryptMessageText(updatedMsg.text);
+
+  set((state) => ({
+    messages: state.messages.map((msg) =>
+      msg._id === updatedMsg.messageId ? { ...msg, text: decryptedText } : msg
+    ),
+  }));
+});
+},
   unsubscribeFromMessages: ()=>{
    const socket = useAuthStore.getState().socket;
 socket.off("newMessage");
