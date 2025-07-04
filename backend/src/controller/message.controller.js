@@ -3,6 +3,7 @@ import { getReceiverSocketId } from "../lib/socket.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 import {io} from "../lib/socket.js";
+import fs from 'fs';
 
 
 
@@ -38,6 +39,30 @@ console.log("Chat with:", req.params.id);
      console.log("Error in getMessages controller:",error.message);
      res.status(500).json({error: "Internal Server error"});
    }
+};
+export const uploadFile = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      resource_type: "auto"
+      
+    });
+    console.log("Uploaded local file path:", req.file?.path);
+console.log("Cloudinary upload result:", result);
+
+
+    // Delete local file after upload
+    fs.unlink(req.file.path, (err) => {
+      if (err) console.error("Failed to delete local file:", err);
+      else console.log("Deleted local file:", req.file.path);
+    });
+
+    res.status(200).json({ url: result.secure_url });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ message: "Upload failed" });
+  }
 };
 export const updateMessage = async (req, res) => {
   try {
@@ -103,25 +128,30 @@ export const deleteMessage = async (req, res) => {
 
 export const sendMessage = async(req,res)=>{
   try{
-     const { text, image} = req.body;
+     const { text, image,file} = req.body;
      const {id: receiverId } = req.params;
      const senderId = req.user._id;
 
      let imageUrl;
+     let fileUrl = file;
      if(image){
         // upload base64 image to cloudinary
         const uploadResponse = await cloudinary.uploader.upload(image);
         imageUrl = uploadResponse.secure_url;
      }
+     
 
      const newMessage = new Message({
         senderId,
         receiverId,
         text,
         image: imageUrl,
+        file: fileUrl,
      });
 
      await newMessage.save();
+     console.log("Saving message:", newMessage);
+
 
   // socket io for real time communication .
      const receiverSocketId = getReceiverSocketId(receiverId);

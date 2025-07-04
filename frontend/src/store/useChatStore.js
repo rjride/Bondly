@@ -95,6 +95,17 @@ updateMessage: async (messageId, newText) => {
     toast.error("Failed to update message");
   }
 },
+uploadFile: async (formData) => {
+  try {
+    const { data } = await axiosInstance.post("/messages/upload-file", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  } catch (err) {
+    toast.error("File upload failed");
+    throw err;
+  }
+},
 subscribeToMessages: () => {
   const { selectedUser } = get();
   if (!selectedUser) return;

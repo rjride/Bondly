@@ -14,6 +14,7 @@ const ChatContainer = () => {
   const messageEndRef = useRef(null);
   const [openMenuId, setOpenMenuId] = useState(null);
 
+
   useEffect(() => {
     if (!selectedUser) return;
     getMessages(selectedUser._id);
@@ -45,6 +46,7 @@ const ChatContainer = () => {
           <div className="text-zinc-500 text-center">No messages yet.</div>
         ) : (
           messages.map((message) => (
+            
             <div
               key={message._id}
               className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}
@@ -76,7 +78,15 @@ const ChatContainer = () => {
                     className="sm:max-w-[200px] rounded-md mb-2"
                   />
                 )}
+             
                 {message.text && <p>{message.text}</p>}
+                
+               {message.file && (
+  <a href={message.file} target="_blank" rel="noopener noreferrer">
+    View file
+  </a>
+)}
+                
               </div>
 
               {message.senderId === authUser._id && (
